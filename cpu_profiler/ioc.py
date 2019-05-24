@@ -7,12 +7,12 @@ import operator
 def get_jstacks(jstacks,pid,nid):
 	jstacks_array = []
 	output_jstack = ''
+	k_nid = ''
 
 	for j in range(len(jstacks)):
 		if pid in jstacks[j]:
 
 			output_jstack = jstacks[j][pid]
-
 			k_nid = "nid="+hex(nid)
       		nid_index = output_jstack.find(k_nid)
       		if nid_index == -1:
@@ -25,7 +25,7 @@ def get_jstacks(jstacks,pid,nid):
 		        end_string = output_jstack[nid_index:] 
 		        start_index = start_string.rfind('\n')
 		        end_index = end_string.find("\n\"")+nid_index
-		        jstacks_array.append(output_jstack[start_index:end_index])
+		        jstacks_array.append(output_jstack[start_index+1:end_index])
 
 	return jstacks_array
 
@@ -49,7 +49,7 @@ def print_and_exit(error=None,threads=None):
 
 def main():
 
-	cutoff = 0.01
+	cutoff = 0.1
 	io_command = "iotop -b -n1 "
 	ranks = {}
 	jstacks = []
@@ -88,26 +88,32 @@ def main():
 					else:
 						ranks[tid].append(float(temp[9]))
 
-					get_pid_command = "cat /proc/"+str(tid)+"/status"
-					
-					output,error = subprocess.Popen(get_pid_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-					if error != '':
-						pid_dict[tid] = -1
-						continue
+					if tid in pid_dict:
+						pid = pid_dict[tid]
+					else:
 
-					output = output.split('\n')
-					for line in output:
-						temp = line.split()
-						if temp[0] == 'Tgid:':
-							pid = int(temp[1])
-							pid_dict[tid] = pid
-							if pid not in jstacks[j]:
-								jstack_command = "jstack -l "+str(pid)
-								jstack_output,error = subprocess.Popen(jstack_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-								if error == '':
-									jstacks[j][pid] = jstack_output
-									
-							break
+						get_pid_command = "cat /proc/"+str(tid)+"/status"
+						
+						output,error = subprocess.Popen(get_pid_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+						if error != '':
+							pid_dict[tid] = -1
+							continue
+
+						output = output.split('\n')
+						for line in output:
+							temp = line.split()
+							if temp[0] == 'Tgid:':
+								pid = int(temp[1])
+								pid_dict[tid] = pid
+								break
+
+					if pid not in jstacks[j]:
+						jstack_command = 'su - sprinternal -c "jstack -l '+str(pid)+'"'
+						jstack_output,error = subprocess.Popen(jstack_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+						if error == '':
+							jstacks[j][pid] = jstack_output
+							
+				
 
 
 		time.sleep(1)
@@ -125,7 +131,7 @@ def main():
 		print_and_exit(error="No such Thread")
 
 	consuming_threads = []
-	for j in range(3):
+	for j in range(min(len(sorted_ranks),3)):
 		temp = {}
 		temp['io'] = sorted_ranks[j][1]
 		temp['nid'] = sorted_ranks[j][0]
