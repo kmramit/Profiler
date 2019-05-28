@@ -4,6 +4,13 @@ import argparse
 import time
 import operator
 
+size = {}
+size['B'] = 1
+size['K'] = 1024
+size['M'] = 1024*1024
+size['G'] = 1024*1024*1024
+size['T'] = 1024*1024*1024*1024
+
 def get_jstacks(jstacks,pid,nid):
 	jstacks_array = []
 	output_jstack = ''
@@ -47,9 +54,9 @@ def print_and_exit(error=None,threads=None):
     print(json.dumps(result))
     exit(1)
 
-def main():
+def main(user,cutoff):
 
-	cutoff = 0.1
+	global size
 	io_command = "iotop -b -n1 "
 	ranks = {}
 	jstacks = []
@@ -75,43 +82,53 @@ def main():
 			else:
 				if len(temp) < 12:
 					continue
-				elif float(temp[9]) < cutoff:
-					break
 				elif temp[11].find('java') == -1:
 					continue
 				else:
-					
-					tid = int(temp[0])
-					if tid not in ranks:
-						ranks[tid] = []
-						ranks[tid].append(float(temp[9]))
-					else:
-						ranks[tid].append(float(temp[9]))
 
-					if tid in pid_dict:
-						pid = pid_dict[tid]
-					else:
+					read_unit = size[temp[4].split('/')[0]]
+					write_unit = size[temp[6].split('/')[0]]
+					read_speed = float(temp[3])*read_unit
+					write_speed = float(temp[5])*write_unit
 
-						get_pid_command = "cat /proc/"+str(tid)+"/status"
+					total_io_speed = (read_speed+write_speed)
+
+					if total_io_speed < cutoff:
+						continue
+
+					else:
 						
-						output,error = subprocess.Popen(get_pid_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-						if error != '':
-							pid_dict[tid] = -1
-							continue
+						tid = int(temp[0])
+						if tid not in ranks:
+							ranks[tid] = []
+							ranks[tid].append(total_io_speed)
+						else:
+							ranks[tid].append(total_io_speed)
 
-						output = output.split('\n')
-						for line in output:
-							temp = line.split()
-							if temp[0] == 'Tgid:':
-								pid = int(temp[1])
-								pid_dict[tid] = pid
-								break
+						if tid in pid_dict:
+							pid = pid_dict[tid]
+						else:
 
-					if pid not in jstacks[j]:
-						jstack_command = 'su - sprinternal -c "jstack -l '+str(pid)+'"'
-						jstack_output,error = subprocess.Popen(jstack_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-						if error == '':
-							jstacks[j][pid] = jstack_output
+							get_pid_command = "cat /proc/"+str(tid)+"/status"
+							
+							output,error = subprocess.Popen(get_pid_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+							if error != '':
+								pid_dict[tid] = -1
+								continue
+
+							output = output.split('\n')
+							for line in output:
+								temp = line.split()
+								if temp[0] == 'Tgid:':
+									pid = int(temp[1])
+									pid_dict[tid] = pid
+									break
+
+						if pid not in jstacks[j]:
+							jstack_command = 'su - '+user+' -c "jstack -l '+str(pid)+'"'
+							jstack_output,error = subprocess.Popen(jstack_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+							if error == '':
+								jstacks[j][pid] = jstack_output
 							
 				
 
@@ -144,5 +161,19 @@ def main():
 
 
 if __name__ == '__main__':
-	main()
+
+	global size
+	ap = argparse.ArgumentParser()
+  	ap.add_argument("-u", "--user",help="User of java process")
+  	ap.add_argument("-c", "--cutoff",help="Cutoff limit in Bytes/Sec")
+  	args = vars(ap.parse_args())
+
+  	if args["user"] is None:
+  		args["user"] = "sprinternal"
+  	if args["cutoff"] is None:
+  		args["cutoff"] = 10*size['M']
+
+  	user = args['user']
+  	cutoff = args['cutoff']
+	main(user,cutoff)
 

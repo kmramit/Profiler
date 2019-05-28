@@ -111,13 +111,13 @@ def main(cutoff):
                   pid_dict[tid] = pid
                   break
 
-              if pid not in jstacks[j]:
+            if pid not in jstacks[j]:
 
-                jstack_command = 'jstack -l '+str(pid)
-                jstack_output,error = subprocess.Popen(jstack_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-                if error == '':
-      
-                  jstacks[j][pid] = jstack_output
+              jstack_command = 'jstack -l '+str(pid)
+              jstack_output,error = subprocess.Popen(jstack_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+              if error == '':
+    
+                jstacks[j][pid] = jstack_output
 
       time.sleep(1)
 

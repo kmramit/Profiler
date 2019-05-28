@@ -16,9 +16,13 @@ class DisplayMessage implements Runnable {
                 file.createNewFile();
                 FileWriter fw = new FileWriter(file);
                 BufferedWriter bw = new BufferedWriter(fw);
-                bw.write("Some text here for a reason");
-                bw.flush();
-                TimeUnit.SECONDS.sleep(2);    
+                int x = 0;
+                while(x < 1000000){
+                    x++;
+                    bw.write("Some text here for a reason. Some text here for a reasonSome text here for a reasonSome text here for a reasonSome text here for a reasonSome text here for a reason");
+                    bw.flush();    
+                }
+               
             }
             catch(Exception ex){
 
@@ -39,7 +43,6 @@ public class fd {
 
         Runnable bye = new DisplayMessage("Goodbye.txt");
         Thread thread2 = new Thread(bye);
-        thread2.setPriority(Thread.MIN_PRIORITY);
         thread2.setName("goodbye");
         System.out.println("Starting goodbye thread...");
         thread2.start();
@@ -50,9 +53,12 @@ public class fd {
                 file.createNewFile();
                 FileWriter fw = new FileWriter(file);
                 BufferedWriter bw = new BufferedWriter(fw);
-                bw.write("Some text here for a reason 2");
-                bw.flush();
-                TimeUnit.SECONDS.sleep(2);
+                int x = 0;
+                while(x < 1000000){
+                    x++;
+                    bw.write("Some text here for a reason. Some text here for a reasonSome text here for a reasonSome text here for a reasonSome text here for a reasonSome text here for a reason");
+                    bw.flush();    
+                }
             }
             catch(Exception ex){
                 

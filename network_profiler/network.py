@@ -4,6 +4,8 @@ import subprocess
 import argparse
 import json 
 import operator
+import socket
+
 current_milli_time = lambda: int(round(time.time() * 1000))
 size = {}
 size['K'] = 1024
@@ -190,31 +192,21 @@ def main():
     temp['bytes'] = sorted_bytes[j][1]
     temp_socket = sorted_bytes[j][0]
     temp['pid'] = sockets_to_be_monitored[temp_socket]['pid']
-    temp['Remote IP'] = sockets_to_be_monitored[temp_socket]['remote_ip']
-    temp['Remote Port'] = sockets_to_be_monitored[temp_socket]['remote_port']
-    temp['Local Port'] = sockets_to_be_monitored[temp_socket]['local_port']
+    temp['remote_ip'] = sockets_to_be_monitored[temp_socket]['remote_ip']
+    try:
+      temp['remote_hostname'] = socket.gethostbyaddr(temp['remote_ip'])[0]
+    except:
+      temp['remote_hostname'] = 'Could not resolve'
+    temp['remote_port'] = sockets_to_be_monitored[temp_socket]['remote_port']
+    temp['local_port'] = sockets_to_be_monitored[temp_socket]['local_port']
     consuming_threads.append(temp)
 
   clean_command = "iptables -F INPUT"
   clean_output,error = subprocess.Popen(clean_command, shell=True, executable="/bin/bash", stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
-  print(clean_output,error)
 
   print_and_exit(ips=consuming_threads)
 
 
 if __name__ == '__main__':
   main()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
