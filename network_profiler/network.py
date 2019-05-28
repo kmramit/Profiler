@@ -1,4 +1,3 @@
-import psutil
 import time
 import subprocess
 import argparse
@@ -115,7 +114,7 @@ def view_iptable(sockets_to_be_monitored,index):
       sockets_to_be_monitored[reverse[socket]][index] = bytes_rec
 
 
-def main():
+def main(number):
 
   ps_command = "ps -ef | grep java"
 
@@ -187,7 +186,7 @@ def main():
 
   sorted_bytes = sorted(stats.items(), key=operator.itemgetter(1),reverse=True)
   consuming_threads = []
-  for j in range(min(len(sorted_bytes),3)):
+  for j in range(min(len(sorted_bytes),number)):
     temp = {}
     temp['bytes'] = sorted_bytes[j][1]
     temp_socket = sorted_bytes[j][0]
@@ -208,5 +207,13 @@ def main():
 
 
 if __name__ == '__main__':
-  main()
+  ap = argparse.ArgumentParser()
+  ap.add_argument("-n", "--number",help="Maximum number of Network Consuming connections")
+  args = vars(ap.parse_args())
+
+  if args["number"] is None:
+      args["number"] = 3
+
+  number = int(args['number'])
+  main(number)
 

@@ -173,7 +173,7 @@ if __name__ == '__main__':
   	if args["cutoff"] is None:
   		args["cutoff"] = 10*size['M']
 
-  	user = args['user']
-  	cutoff = args['cutoff']
+  	user = str(args['user'])
+  	cutoff = float(args['cutoff'])
 	main(user,cutoff)
 

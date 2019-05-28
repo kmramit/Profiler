@@ -1,4 +1,3 @@
-import psutil
 import time
 import subprocess
 import argparse
